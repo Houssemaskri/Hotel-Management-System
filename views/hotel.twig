@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page de réservation</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body class="container mt-5">
+    <h1 class="mb-4">Page de réservation</h1>
+    <div class="form-group">
+        <label for="idhotel">ID Hotel:</label>
+        <input type="text" id="idhotel" class="form-control" placeholder="ID Hotel">
+    </div>
+    <div class="form-group">
+        <label for="idchambre">ID Chambre:</label>
+        <input type="text" id="idchambre" class="form-control" placeholder="ID Chambre">
+    </div>
+    <button id="reserver" class="btn btn-primary">Réserver</button>
+    <button id="afficher" class="btn btn-secondary">Afficher Chambres</button>
+    <ul id="chambres-list" class="list-group mt-4"></ul>
+    <script>
+        const socket = io.connect("ws://localhost:3000");
+        let username = prompt('Enter your username');
+        socket.emit('new-user', username);
+
+        document.getElementById('reserver').addEventListener('click', () => {
+            let idhotel = document.getElementById('idhotel').value;
+            let idchambre = document.getElementById('idchambre').value;
+            fetch(`/chambre/reserve/${idchambre}/${username}`, {
+                method: 'PUT'
+            })
+            .then(response => response.text())
+            .then(message => {
+                alert(message);
+            });
+        });
+
+        document.getElementById('afficher').addEventListener('click', () => {
+            let idhotel = document.getElementById('idhotel').value;
+            fetch(`/chambre/list/${idhotel}`)
+                .then(response => response.json())
+                .then(chambres => {
+                    const list = document.getElementById('chambres-list');
+                    list.innerHTML = '';
+
+                    const reservedList = chambres.filter(c => c.reservee === 'true')
+                        .map(c => `<li class="list-group-item list-group-item-danger">Chambre ${c.num} - Réservée: ${c.reservee} - id: ${c._id}</li>`).join('');
+                    const nonReservedList = chambres.filter(c => c.reservee === 'false')
+                        .map(c => `<li class="list-group-item list-group-item-success">Chambre ${c.num} - Réservée: ${c.reservee} - id: ${c._id}</li>`).join('');
+
+                    list.innerHTML = `
+                        <h3>Réservées</h3>
+                        <ul class="list-group">${reservedList || '<li class="list-group-item">Aucune chambre réservée</li>'}</ul>
+                        <h3>Non Réservées</h3>
+                        <ul class="list-group">${nonReservedList || '<li class="list-group-item">Aucune chambre non réservée</li>'}</ul>
+                    `;
+                });
+        });
+    </script>
+</body>
+</html>
